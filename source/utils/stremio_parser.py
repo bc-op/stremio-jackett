@@ -56,7 +56,7 @@ def parse_to_debrid_stream(torrent_item: TorrentItem, configb64, host, torrentin
 
     parsed_data = torrent_item.parsed_data.data
 
-    name += f"{parsed_data.resolution or "Unknown"}" + (f" ({parsed_data.quality})" if parsed_data.quality else "")
+    name += f"{parsed_data.resolution or 'Unknown'}" + (f" ({parsed_data.quality})" if parsed_data.quality else "")
 
     size_in_gb = round(int(torrent_item.size) / 1024 / 1024 / 1024, 2)
 

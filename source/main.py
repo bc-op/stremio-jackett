@@ -37,7 +37,7 @@ if root_path and not root_path.startswith("/"):
     root_path = "/" + root_path
 app = FastAPI(root_path=root_path)
 
-VERSION = "4.2.6"
+VERSION = "4.2.7"
 isDev = os.getenv("NODE_ENV") == "development"
 COMMUNITY_VERSION = True if os.getenv("IS_COMMUNITY_VERSION") == "true" else False
 SPONSOR_MESSAGE = os.getenv("SPONSOR_MESSAGE")
@@ -142,25 +142,25 @@ async def get_results(config: str, stream_type: str, stream_id: str, request: Re
     debrid_service = get_debrid_service(config)
 
     search_results = []
-    if COMMUNITY_VERSION or config['cache']:
-        logger.info("Getting cached results")
-        cached_results = search_cache(media)
-        cached_results = [JackettResult().from_cached_item(torrent, media) for torrent in cached_results]
-        logger.info("Got " + str(len(cached_results)) + " cached results")
+    # if COMMUNITY_VERSION or config['cache']:
+    #     logger.info("Getting cached results")
+    #     cached_results = search_cache(media)
+    #     cached_results = [JackettResult().from_cached_item(torrent, media) for torrent in cached_results]
+    #     logger.info("Got " + str(len(cached_results)) + " cached results")
 
-        if len(cached_results) > 0:
-            logger.info("Filtering cached results")
-            search_results = filter_items(cached_results, media, config=config)
-            logger.info("Filtered cached results")
+    #     if len(cached_results) > 0:
+    #         logger.info("Filtering cached results")
+    #         search_results = filter_items(cached_results, media, config=config)
+    #         logger.info("Filtered cached results")
 
     # TODO: if we have results per quality set, most of the time we will not have enough cached results AFTER filtering them
     # because we will have less results than the maxResults, so we will always have to search for new results
 
     if not COMMUNITY_VERSION and config['jackett'] and len(search_results) < int(config['maxResults']):
-        if len(search_results) > 0 and config['cache']:
-            logger.info("Not enough cached results found (results: " + str(len(search_results)) + ")")
-        elif config['cache']:
-            logger.info("No cached results found")
+        # if len(search_results) > 0 and config['cache']:
+        #     logger.info("Not enough cached results found (results: " + str(len(search_results)) + ")")
+        # elif config['cache']:
+        #     logger.info("No cached results found")
 
         logger.info("Searching for results on Jackett")
         jackett_service = jackett_service if jackett_service else JackettService(config)
@@ -175,7 +175,7 @@ async def get_results(config: str, stream_type: str, stream_id: str, request: Re
 
     logger.debug("Converting result to TorrentItems (results: " + str(len(search_results)) + ")")
     torrent_service = TorrentService()
-    torrent_results = torrent_service.convert_and_process(search_results)
+    torrent_results = torrent_service.convert_and_process(search_results, media)
     logger.debug("Converted result to TorrentItems (results: " + str(len(torrent_results)) + ")")
 
     torrent_smart_container = TorrentSmartContainer(torrent_results, media)
@@ -190,7 +190,7 @@ async def get_results(config: str, stream_type: str, stream_id: str, request: Re
             logger.debug("Checked availability (results: " + str(len(result.items())) + ")")
 
     # TODO: Maybe add an if to only save to cache if caching is enabled?
-    torrent_smart_container.cache_container_items()
+    # torrent_smart_container.cache_container_items()
 
     logger.debug("Getting best matching results")
     best_matching_results = torrent_smart_container.get_best_matching()

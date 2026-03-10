@@ -21,22 +21,22 @@ class TorrentService:
         self.logger = setup_logger(__name__)
         self.__session = requests.Session()
 
-    def convert_and_process(self, results: List[JackettResult]):
+    def convert_and_process(self, results: List[JackettResult], media):
         threads = []
         torrent_items_queue = queue.Queue()
 
-        def thread_target(result: JackettResult):
+        def thread_target(result: JackettResult, media):
             torrent_item = result.convert_to_torrent_item()
 
             if torrent_item.link.startswith("magnet:"):
                 processed_torrent_item = self.__process_magnet(torrent_item)
             else:
-                processed_torrent_item = self.__process_web_url(torrent_item)
+                processed_torrent_item = self.__process_web_url(torrent_item, media)
 
             torrent_items_queue.put(processed_torrent_item)
 
         for result in results:
-            threads.append(threading.Thread(target=thread_target, args=(result,)))
+            threads.append(threading.Thread(target=thread_target, args=(result, media)))
 
         for thread in threads:
             thread.start()
@@ -51,19 +51,19 @@ class TorrentService:
 
         return torrent_items_result
 
-    def __process_web_url(self, result: TorrentItem):
+    def __process_web_url(self, result: TorrentItem, media):
         try:
             # TODO: is the default timeout enough?
-            response = self.__session.get(result.link, allow_redirects=False, timeout=os.environ.get("JACKETT_RESOLVER_TIMEOUT", 2))
+            response = self.__session.get(result.link, allow_redirects=False, timeout=float(os.environ.get("JACKETT_RESOLVER_TIMEOUT", 15)))
         except requests.exceptions.ReadTimeout:
-            self.logger.error(f"Timeout while processing url (took longer than 2 seconds)")
+            self.logger.error(f"Timeout while processing url (took longer than {os.environ.get('JACKETT_RESOLVER_TIMEOUT', 15)} seconds)")
             return result
         except requests.exceptions.RequestException:
             self.logger.error(f"Error while processing url: {result.link}")
             return result
 
         if response.status_code == 200:
-            return self.__process_torrent(result, response.content)
+            return self.__process_torrent(result, response.content, media)
         elif response.status_code == 302:
             result.magnet = response.headers['Location']
             return self.__process_magnet(result)
@@ -72,7 +72,7 @@ class TorrentService:
 
         return result
 
-    def __process_torrent(self, result: TorrentItem, torrent_file):
+    def __process_torrent(self, result: TorrentItem, torrent_file, media):
         metadata = bencode.bdecode(torrent_file)
 
         result.torrent_download = result.link
@@ -87,7 +87,16 @@ class TorrentService:
         result.files = metadata["info"]["files"]
 
         if result.type == "series":
-            file_details = self.__find_episode_file(result.files, result.parsed_data.seasons, result.parsed_data.episodes)
+            season = media.season
+            episode = media.episode
+
+            if isinstance(season, str):
+                season = int(season.replace("S", ""))
+            
+            if isinstance(episode, str):
+                episode = int(episode.replace("E", ""))
+
+            file_details = self.__find_episode_file(result.files, [season], [episode])
 
             if file_details is not None:
                 self.logger.info("File details")

@@ -172,6 +172,8 @@ class TorrentSmartContainer:
                 if item.info_hash in items_dict:
                     self.logger.debug(f"Duplicate info hash found: {item.info_hash}")
                 items_dict[item.info_hash] = item
+            else:
+                self.logger.warning(f"Could not find info hash for {item.raw_title}")
         return items_dict
 
     # Simple recursion to traverse the file structure returned by AllDebrid
