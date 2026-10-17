@@ -1,7 +1,7 @@
 name: stremio_jacket
 services:
   flaresolverr:
-    image: ghcr.io/flaresolverr/flaresolverr:latest
+    image: ghcr.io/flaresolverr/flaresolverr:v3.5.2
     container_name: flaresolverr
     environment:
       - LOG_LEVEL=${LOG_LEVEL:-info}
@@ -15,7 +15,7 @@ services:
     restart: unless-stopped
 
   jackett:
-    image: lscr.io/linuxserver/jackett:latest
+    image: lscr.io/linuxserver/jackett:0.24.2865
     container_name: jackett
     environment:
       - PUID=1000
@@ -32,7 +32,7 @@ services:
     restart: unless-stopped
 
   jackett-stremio:
-    image: belmeg/stremio-addon-jackett
+    image: belmeg/stremio-addon-jackett:v4.2.7
     container_name: jackett-stremio
     environment:
       - PUID=1000
